@@ -1,37 +1,37 @@
 #Virtualenv setup
 
-directory "/home/docs/sites/" do
-    owner "docs"
-    group "docs"
+directory "/home/geonode/sites/" do
+    owner "geonode"
+    group "geonode"
     mode 0775
 end
 
-virtualenv "/home/docs/sites/readthedocs.org" do
-    owner "docs"
-    group "docs"
+virtualenv "/home/geonode/sites/readthedocs.org" do
+    owner "geonode"
+    group "geonode"
     mode 0775
 end
 
-directory "/home/docs/sites/readthedocs.org/run" do
-    owner "docs"
-    group "docs"
+directory "/home/geonode/sites/readthedocs.org/run" do
+    owner "geonode"
+    group "geonode"
     mode 0775
 end
 
-git "/home/docs/sites/readthedocs.org/checkouts/readthedocs.org" do
+git "/home/geonode/sites/readthedocs.org/checkouts/readthedocs.org" do
   repository "git://github.com/rtfd/readthedocs.org.git"
   reference "HEAD"
-  user "docs"
-  group "docs"
+  user "geonode"
+  group "geonode"
   action :sync
 end
 
 script "Install Requirements" do
   interpreter "bash"
-  user "docs"
-  group "docs"
+  user "geonode"
+  group "geonode"
   code <<-EOH
-  /home/docs/sites/readthedocs.org/bin/pip install -r /home/docs/sites/readthedocs.org/checkouts/readthedocs.org/deploy_requirements.txt
+  /home/geonode/sites/readthedocs.org/bin/pip install -r /home/geonode/sites/readthedocs.org/checkouts/readthedocs.org/deploy_requirements.txt
   EOH
 end
 
@@ -70,9 +70,9 @@ service "readthedocs-celery" do
 end
 
 
-cookbook_file "/home/docs/.bash_profile" do
+cookbook_file "/home/geonode/.bash_profile" do
     source "bash_profile"
-    owner "docs"
-    group "docs"
+    owner "geonode"
+    group "geonode"
     mode 0755
 end

@@ -10,5 +10,5 @@ export EDITOR=vim
 cd ~/sites/readthedocs.org/
 
 
-alias chk='cd /home/docs/sites/readthedocs.org/checkouts/readthedocs.org'
-alias run='cd /home/docs/sites/readthedocs.org/run'
+alias chk='cd /home/geonode/sites/readthedocs.org/checkouts/readthedocs.org'
+alias run='cd /home/geonode/sites/readthedocs.org/run'
