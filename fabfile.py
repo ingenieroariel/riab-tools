@@ -74,7 +74,7 @@ def install_chef():
     sudo('gem install chef --no-ri --no-rdoc', pty=True)
 
 def sync_config():
-    local('rsync -av -e "ssh -i %s" . %s:chef' % (env.key_filename[0],env.host_string))
+    local('rsync -av -e "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i %s" . %s:chef' % (env.key_filename[0],env.host_string))
     sudo('rsync -av chef /etc/')
 
 def update():
