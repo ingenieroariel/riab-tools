@@ -1,7 +1,7 @@
 {
-  "run_list": [ "main::default", "main::python", "main::readthedocs", "main::memcached", "main::nginx", "main::munin", "main::security"],
-  "base_packages": ["git-core", "bash-completion", "nmap", "telnet"],
-  "ubuntu_python_packages": ["python-setuptools", "python-pip", "python-dev", "libpq-dev"],
+  "run_list": [ "main::default", "main::python", "main::geonode"],
+  "base_packages": ["git-core", "binutils", "build-essential", "bash-completion", "subversion", "unzip", "openjdk-6-jre", "postgresql-8.4", "gcc" ,"libjpeg62-dev", "libpng12-dev", "gdal-bin", "libproj-dev", "libgeos-dev", "apache2", "libapache2-mod-wsgi"],
+  "ubuntu_python_packages": ["python-setuptools", "python-pip", "python-dev", "libpq-dev", "python-gdal", "python-psycopg2", "python-imaging", "python-reportlab", "python-urlgrabber"],
   "pip_python_packages": {"virtualenv": "1.5.1", "mercurial": "1.7"},
 
   "users": {
