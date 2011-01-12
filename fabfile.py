@@ -76,6 +76,8 @@ def geonode_prod():
 
 # Chef stuff
 
+env.chef_executable = '/var/lib/gems/1.8/bin/chef-solo
+
 def install_chef():
     sudo('apt-get update', pty=True)
     sudo('apt-get install -y git-core rubygems ruby-full ruby-dev', pty=True)
