@@ -72,10 +72,13 @@ def create():
             # this probably means the security group is not defined
             # create the rules programatically to add access to ports 22, 80, 8000 and 8001
             geonode_group = conn.create_security_group(SECURITY_GROUP, 'Cool GeoNode rules')
-            geonode_group.authorize('tcp', 22, 22, '0.0.0.0/0')
-            geonode_group.authorize('tcp', 80, 80, '0.0.0.0/0')
-            geonode_group.authorize('tcp', 8000, 8001, '0.0.0.0/0')
-            geonode_group.authorize('tcp', 8080, 8080, '0.0.0.0/0')
+            geonode_group.authorize('tcp', 21, 21, '0.0.0.0/0') # Batch Upload FTP
+            geonode_group.authorize('tcp', 22, 22, '0.0.0.0/0') # SSH
+            geonode_group.authorize('tcp', 80, 80, '0.0.0.0/0') # Apache
+            geonode_group.authorize('tcp', 2300, 2400, '0.0.0.0/0') # Passive FTP 
+            geonode_group.authorize('tcp', 8000, 8001, '0.0.0.0/0') # Dev Django and Jetty
+            geonode_group.authorize('tcp', 8021, 8021, '0.0.0.0/0' ) # Batch Upload FTP
+            geonode_group.authorize('tcp', 8080, 8080, '0.0.0.0/0' ) # Tomcat
 
         try:
             [geonode_key] = [x for x in conn.get_all_key_pairs() if x.name == 'geonode']
