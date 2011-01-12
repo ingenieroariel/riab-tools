@@ -1,14 +1,10 @@
 . .bashrc
 
 export PIP_DOWNLOAD_CACHE=/tmp/pip
-export DJANGO_SETTINGS_MODULE=settings
-export PYTHONPATH=$PYTHONPATH:~/sites/readthedocs.org/checkouts/readthedocs.org
+export DJANGO_SETTINGS_MODULE=geonode.settings
+export PYTHONPATH=$PYTHONPATH:~/geonode
 export EDITOR=vim
 
-. sites/readthedocs.org/bin/activate
+. ~/geonode/bin/activate
 
-cd ~/sites/readthedocs.org/
-
-
-alias chk='cd /home/geonode/sites/readthedocs.org/checkouts/readthedocs.org'
-alias run='cd /home/geonode/sites/readthedocs.org/run'
+cd ~/geonode
