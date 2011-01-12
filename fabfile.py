@@ -13,9 +13,19 @@ def upgrade():
     sudo('apt-get -y dist-upgrade')
 
 def sunjava():
+    sudo('export DEBIAN_FRONTEND=noninteractive')
     sudo('add-apt-repository "deb http://archive.canonical.com/ lucid partner"')
     sudo('apt-get -y update')
-    sudo("apt-get install -y sun-java6-jdk")
+    # 'Accept' SunOracle Licensing
+    sudo('echo "sun-java6-bin shared/accepted-sun-dlj-v1-1 boolean true" | sudo debconf-set-selections')
+    sudo('echo "sun-java6-jdk shared/accepted-sun-dlj-v1-1 boolean true" | sudo debconf-set-selections')
+    sudo('echo "sun-java6-jre shared/accepted-sun-dlj-v1-1 boolean true" | sudo debconf-set-selections')
+    sudo('echo "sun-java6-jre sun-java6-jre/stopthread boolean true" | sudo debconf-set-selections')
+    sudo('echo "sun-java6-jre sun-java6-jre/jcepolicy note" | sudo debconf-set-selections')
+    sudo('echo "sun-java6-bin shared/present-sun-dlj-v1-1 note" | sudo debconf-set-selections')
+    sudo('echo "sun-java6-jdk shared/present-sun-dlj-v1-1 note" | sudo debconf-set-selections')
+    sudo('echo "sun-java6-jre shared/present-sun-dlj-v1-1 note" | sudo debconf-set-selections')
+    sudo("apt-get install -y --force-yes sun-java6-jdk")
 
 def openjdk():
     sudo('apt-get install -y openjdk-6-jdk')   
@@ -24,8 +34,9 @@ def setup():
     sudo('apt-get -y update')
     # upgrade()
 
-    # Choose one between sunjava and openjdk. If it is an automatic installation sun java cannot be used because it expects user input.
-    openjdk()  # or sunjava()
+    # Choose one between sunjava and openjdk.
+    #openjdk()
+    sunjava()
 
     sudo('apt-get install -y subversion git-core binutils build-essential python-dev python-setuptools python-imaging python-reportlab gdal-bin libproj-dev libgeos-dev unzip maven2 python-urlgrabber')
 
