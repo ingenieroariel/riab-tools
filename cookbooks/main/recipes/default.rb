@@ -4,7 +4,7 @@
 
 ### Packages
 # Just base packages required by the whole system here, please. Dependencies
-# for other recipes should live int hose recipes.
+# for other recipes should live in those recipes.
 
 node[:base_packages].each do |pkg|
     package pkg do
