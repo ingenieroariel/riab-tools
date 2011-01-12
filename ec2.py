@@ -1,6 +1,6 @@
 # easy_install boto 
 # You will also need:
-# - A .pem keyfile generated using the Amazon web interface to create new instances
+# - A .pem keyfile generated using the Amazon web interface to launch new instances
 # - The secret and access keys created from the 
 # The only pre-reqs are having created a keypair (.pem file) 
 # via the amazon web interface and knowing the AWS key and secret
@@ -8,7 +8,7 @@
 # Usage:
 #     export AWS_ACCESS_KEY_ID='blahblah'
 #     export AWS_SECRET_ACCESS_KEY='blebleble'
-#     ec2.py create
+#     ec2.py launch 
 import os, time, boto
 import sys
 import ConfigParser
@@ -45,23 +45,23 @@ def readconfig():
         config.read(CONFIG_FILE)
     return config
 
-def create():
+def launch():
     config = readconfig()
     MY_AMI=config.get('ec2', 'AMI')
     SECURITY_GROUP=config.get('ec2', 'SECURITY_GROUP')
     KEY_PATH = config.get('ec2', 'KEY_PATH')
     INSTANCE_TYPE = config.get('ec2', 'INSTANCE_TYPE')
 
-    create = True
+    launch = True
 
     if config.has_option('ec2', 'HOST'):
         host = config.get('ec2', 'HOST')
         if host != "" and host is not None:
-            print "there is already an instance created"
-            create = False
+            print "there is already an instance launched"
+            launch = False
             return
  
-    if create:
+    if launch:
         conn = boto.connect_ec2()
         image = conn.get_image(MY_AMI)
         security_groups = conn.get_all_security_groups()
@@ -70,7 +70,7 @@ def create():
             [geonode_group] = [x for x in security_groups if x.name == SECURITY_GROUP]
         except ValueError:
             # this probably means the security group is not defined
-            # create the rules programatically to add access to ports 22, 80, 8000 and 8001
+            # create the rules programatically to add access to ports 21, 22, 80, 2300-2400, 8000, 8001, 8021 and 8080
             geonode_group = conn.create_security_group(SECURITY_GROUP, 'Cool GeoNode rules')
             geonode_group.authorize('tcp', 21, 21, '0.0.0.0/0') # Batch Upload FTP
             geonode_group.authorize('tcp', 22, 22, '0.0.0.0/0') # SSH
@@ -140,8 +140,8 @@ def terminate():
             configfile.close()
             break
 
-if sys.argv[1] == "create":
-    create()
+if sys.argv[1] == "launch":
+    launch()
 elif sys.argv[1] == "terminate":
     terminate()
 elif sys.argv[1] == "host":
@@ -151,5 +151,5 @@ elif sys.argv[1] == "key":
     config = readconfig()
     print config.get('ec2', 'KEY_PATH')
 else:
-    print "Usage:\n    python %s create\n    python %s terminate" % (sys.argv[0], sys.argv[0])
+    print "Usage:\n    python %s launch\n    python %s terminate" % (sys.argv[0], sys.argv[0])
 
