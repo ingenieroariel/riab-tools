@@ -1,3 +1,4 @@
 *.pyc
 *.swp
 *.pem
+.gnec2.cfg
