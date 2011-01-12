@@ -1,7 +1,10 @@
 # easy_install fabric
 #
 # Usage:
-#     fab -H user@hostname geonode
+#     fab -H user@hostname geonode_dev
+#         -- or --
+#     fab -H user@hostname geonode_prod
+
 from fabric.api import env, sudo, run, cd, local
 
 # Geonode build
@@ -35,7 +38,7 @@ def build():
     run('cd geonode;source bin/activate; paver build')
     run('cd geonode;source bin/activate; paver make_release')
 
-def deploy():
+def deploy_dev():
     run("perl -pi -e 's/127.0.0.1/0.0.0.0/g' geonode/shared/dev-paste.ini")
     run("perl -pi -e 's/localhost/0.0.0.0/g' geonode/src/geoserver-geonode-ext/jetty.xml")
     run('echo "SITEURL = \'http://%s:8000/\'" >> geonode/src/GeoNodePy/geonode/local_settings.py' % env.host )
@@ -52,21 +55,26 @@ def hosty():
     print "http://%s:8000" % env.host
     run('cd geonode;source bin/activate;paver host')
 
-def geonode():
+def deploy_prod():
+    sudo('export DEBIAN_FRONTEND=noninteractive')
+    sudo('add-apt-repository "deb http://apt.opengeo.org/lucid lucid main"')
+    sudo('apt-get -y update')
+    sudo('echo "geonode geonode/django_user string admin" | sudo debconf-set-selections')
+    sudo('echo "geonode geonode/django_password password adm1n" | sudo debconf-set-selections')
+    sudo('echo "geonode geonode/hostname string %s" | sudo debconf-set-selections' % env.host)
+    sudo("apt-get install -y --force-yes geonode")
+
+def geonode_dev():
     setup()
     build()
-    deploy()
+    deploy_dev()
     hosty()
 
+def geonode_prod():
+    setup()
+    deploy_prod()
 
 # Chef stuff
-
-env.code_dir = '/home/docs/sites/readthedocs.org/checkouts/readthedocs.org'
-env.virtualenv = '/home/docs/sites/readthedocs.org'
-env.rundir = '/home/docs/sites/readthedocs.org/run'
-
-env.chef_executable = '/var/lib/gems/1.8/bin/chef-solo'
-
 
 def install_chef():
     sudo('apt-get update', pty=True)
@@ -88,5 +96,4 @@ def reload():
 
 def restart():
     "Restart (or just start) the server"
-    sudo('restart readthedocs-gunicorn', pty=True)
-
+    #sudo('restart readthedocs-gunicorn', pty=True)
