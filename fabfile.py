@@ -5,7 +5,10 @@
 #         -- or --
 #     fab -H user@hostname geonode_prod
 
-from fabric.api import env, sudo, run, cd, local
+import datetime
+
+from fabric.api import env, sudo, run, cd, local, put
+
 
 # Geonode build
 
@@ -41,7 +44,8 @@ def setup():
     sudo('apt-get install -y subversion git-core binutils build-essential python-dev python-setuptools python-imaging python-reportlab gdal-bin libproj-dev libgeos-dev unzip maven2 python-urlgrabber')
 
 def build():
-    run('git clone git://github.com/GeoNode/geonode.git')
+    #run('git clone git://github.com/GeoNode/geonode.git')
+    run('git clone git://github.com/jj0hns0n/geonode.git')
     run('cd geonode;git submodule update --init')
     # WORKAROUND: Avoid compiling reportlab because it is already installed via apt-get and it hangs with fabric (too much data)
     run("sed '/reportlab/d' geonode/shared/core-libs.txt > core-libs.txt;mv core-libs.txt geonode/shared/core-libs.txt")
@@ -66,13 +70,15 @@ def hosty():
     print "http://%s:8000" % env.host
     run('cd geonode;source bin/activate;paver host')
 
-def deploy_prod():
+def deploy_prod(host=None):
+    if(host is None):
+        host = env.host
     sudo('export DEBIAN_FRONTEND=noninteractive')
     sudo('add-apt-repository "deb http://apt.opengeo.org/lucid lucid main"')
     sudo('apt-get -y update')
     sudo('echo "geonode geonode/django_user string admin" | sudo debconf-set-selections')
     sudo('echo "geonode geonode/django_password password adm1n" | sudo debconf-set-selections')
-    sudo('echo "geonode geonode/hostname string %s" | sudo debconf-set-selections' % env.host)
+    sudo('echo "geonode geonode/hostname string %s" | sudo debconf-set-selections' % host)
     sudo("apt-get install -y --force-yes geonode")
 
 def geonode_dev():
@@ -84,6 +90,64 @@ def geonode_dev():
 def geonode_prod():
     setup()
     deploy_prod()
+
+#ToDo Move to external file
+AWS_USER_ID=''
+AWS_ACCESS_KEY_ID=''
+AWS_SECRET_ACCESS_KEY=''
+KEY_BASE=''
+KEY_PATH='~/.ssh/' # trailing slash please
+AMI_BUCKET = ''
+ARCH='i386'
+MAKE_PUBLIC=True
+
+VERSION='1.0'
+
+def install_ec2_tools():
+    sudo('export DEBIAN_FRONTEND=noninteractive')
+    sudo('add-apt-repository "deb http://us.archive.ubuntu.com/ubuntu/ lucid multiverse"')
+    sudo('add-apt-repository "deb-src http://us.archive.ubuntu.com/ubuntu/ lucid multiverse"')
+    sudo('add-apt-repository "deb http://us.archive.ubuntu.com/ubuntu/ lucid-updates multiverse"')
+    sudo('add-apt-repository "deb-src http://us.archive.ubuntu.com/ubuntu/ lucid-updates multiverse"')
+    sudo('apt-get -y update')
+    sudo('apt-get install -y ec2-ami-tools')
+    sudo('apt-get install -y ec2-api-tools')
+
+def cleanup_temp():
+    # ToDo: Update as necessary
+    sudo("rm -f /root/.*hist* $HOME/.*hist*")
+    sudo("rm -f /var/log/*.gz")
+
+def copy_keys():
+    sudo('rm -f ~/.ssh/*%s.pem' % (KEY_BASE))
+    put(('%s*%s*' % (KEY_PATH, KEY_BASE)), '~/.ssh/', mode=0400)
+    pass
+
+def create_ami():
+    setup()
+    deploy_prod(host='replace.me')
+    cleanup_temp()
+    copy_keys()
+    put('./update-instance', '~/')
+    sudo('mv /home/ubuntu/update-instance /etc/init.d')
+    sudo('chmod +x /etc/init.d/update-instance')
+    sudo('sudo update-rc.d -f update-instance start 20 2 3 4 5 .')
+    install_ec2_tools()
+    sudo('export AWS_USER_ID=%s' % AWS_USER_ID)
+    sudo('export AWS_ACCESS_KEY_ID=%s' % AWS_ACCESS_KEY_ID)
+    sudo('export AWS_SECRET_ACCESS_KEY=%s' % AWS_SECRET_ACCESS_KEY)
+    #ToDo Support various combos of arch/base-ami 
+    sudo('export ARCH=%s' % ARCH) 
+    prefix = 'geonode-%s-%s' % (VERSION, datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+    excludes = '/mnt,/root/.ssh,/home/ubuntu/.ssh,/tmp'
+    sudo("ec2-bundle-vol -r %s -d /mnt -p %s -u %s -k ~/.ssh/pk-*.pem -c ~/.ssh/cert-*.pem -e %s" % (ARCH, prefix, AWS_USER_ID, excludes))
+    sudo("ec2-upload-bundle -b %s -m /mnt/%s.manifest.xml -a %s -s %s" % (AMI_BUCKET, prefix, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY))
+    output = sudo('ec2-register --name "%s/%s" "%s/%s.manifest.xml" -K ~/.ssh/pk-*.pem -C ~/.ssh/cert-*.pem' % (AMI_BUCKET, prefix, AMI_BUCKET, prefix)) 
+    ami_id = output.split('\t')[1]
+    if MAKE_PUBLIC:
+        sudo("ec2-modify-image-attribute -l -a all -K ~/.ssh/pk-*.pem -C ~/.ssh/cert-*.pem %s" % (ami_id))
+    print "AMI %s Ready for Use" % (ami_id)
+
 
 # Chef stuff
 
