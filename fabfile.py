@@ -9,6 +9,19 @@ import datetime
 
 from fabric.api import env, sudo, run, cd, local, put
 
+#ToDo Move to external file
+AWS_USER_ID=''
+AWS_ACCESS_KEY_ID=''
+AWS_SECRET_ACCESS_KEY=''
+KEY_BASE=''
+KEY_PATH='~/.ssh/' # trailing slash please
+AMI_BUCKET = ''
+ARCH='i386'
+MAKE_PUBLIC=True
+RELEASE_PKG_URL='http://dev.geonode.org/release/GeoNode-1.0.tar.gz'
+VERSION='1.0'
+POSTGRES_USER='geonode'
+POSTGRES_PASSWORD=''
 
 # Geonode build
 
@@ -41,7 +54,7 @@ def setup():
     #openjdk()
     sunjava()
 
-    sudo('apt-get install -y subversion git-core binutils build-essential python-dev python-setuptools python-imaging python-reportlab gdal-bin libproj-dev libgeos-dev unzip maven2 python-urlgrabber')
+    sudo('apt-get install -y zip subversion git-core binutils build-essential python-dev python-setuptools python-imaging python-reportlab gdal-bin libproj-dev libgeos-dev unzip maven2 python-urlgrabber')
 
 def build():
     #run('git clone git://github.com/GeoNode/geonode.git')
@@ -81,6 +94,29 @@ def deploy_prod(host=None):
     sudo('echo "geonode geonode/hostname string %s" | sudo debconf-set-selections' % host)
     sudo("apt-get install -y --force-yes geonode")
 
+def install_release():
+    sudo('apt-get install -y zip')
+    run('rm -rf ~/deploy')
+    run('mkdir ~/deploy')
+    put('./deploy/*', '~/deploy/')
+    #try:
+    #    run('cp /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/local_settings.py ~/deploy')
+    #except:
+    #    pass
+
+    run('rm -rf ~/release')
+    run('mkdir ~/release')
+    run('wget %s -O ~/release/GeoNode-1.0.tar.gz' % RELEASE_PKG_URL)
+    run('chmod +x ~/deploy/deploy.sh')
+    run("perl -pi -e 's/replace.me.site.url/%s/g' ~/deploy/deploy.local.sh" % env.host) 
+    # ToDo: update local_settings.py
+    run('cp ~/deploy/sample_local_settings.py ~/deploy/local_settings.py')
+    run("perl -pi -e 's/replace.me.site.url/%s/g' ~/deploy/local_settings.py" % env.host) 
+    run("perl -pi -e 's/replace.me.pg.user/%s/g' ~/deploy/local_settings.py" % POSTGRES_USER) 
+    run("perl -pi -e 's/replace.me.pg.pw/%s/g' ~/deploy/local_settings.py" % POSTGRES_PASSWORD) 
+    # Google API Key / SMTP Settings
+    sudo('~/deploy/deploy.sh ~/release/GeoNode-1.0.tar.gz')
+
 def geonode_dev():
     setup()
     build()
@@ -90,18 +126,6 @@ def geonode_dev():
 def geonode_prod():
     setup()
     deploy_prod()
-
-#ToDo Move to external file
-AWS_USER_ID=''
-AWS_ACCESS_KEY_ID=''
-AWS_SECRET_ACCESS_KEY=''
-KEY_BASE=''
-KEY_PATH='~/.ssh/' # trailing slash please
-AMI_BUCKET = ''
-ARCH='i386'
-MAKE_PUBLIC=True
-
-VERSION='1.0'
 
 def install_ec2_tools():
     sudo('export DEBIAN_FRONTEND=noninteractive')

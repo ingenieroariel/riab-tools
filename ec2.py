@@ -15,12 +15,12 @@ import ConfigParser
 
 CONFIG_FILE=".gnec2.cfg"
 
-
-
 MAVERIK_64="ami-688c7801"
 MAVERIK_32="ami-1a837773"
 LUCID_64="ami-da0cf8b3"
 LUCID_32="ami-a403f7cd"
+
+GEONODE_LUCID_32="ami-98ad5df1"
 
 def writeconfig(config):
     # Writing our configuration file to CONFIG_FILE
@@ -28,14 +28,17 @@ def writeconfig(config):
     config.write(configfile)
     configfile.close()
  
-def readconfig():
+def readconfig(default_ami=None):
 
     config = ConfigParser.RawConfigParser()
 
     # If there is no config file, let's write one.
     if not os.path.exists(CONFIG_FILE):
         config.add_section('ec2')
-        config.set('ec2', 'AMI', LUCID_32)
+        if default_ami == None:
+            config.set('ec2', 'AMI', LUCID_32)
+        else:
+            config.set('ec2', 'AMI', default_ami)
         config.set('ec2', 'INSTANCE_TYPE', 'm1.small')
         config.set('ec2', 'SECURITY_GROUP', 'geonode')
         config.set('ec2', 'KEY_PATH', 'geonode.pem')
@@ -44,6 +47,14 @@ def readconfig():
     else:
         config.read(CONFIG_FILE)
     return config
+
+def launch_geonode():
+    readconfig(default_ami=GEONODE_LUCID_32)
+    launch()
+
+def launch_base():
+    readconfig(default_ami=LUCID_32)
+    launch()
 
 def launch():
     config = readconfig()
@@ -140,8 +151,10 @@ def terminate():
             configfile.close()
             break
 
-if sys.argv[1] == "launch":
-    launch()
+if sys.argv[1] == "launch_geonode":
+    launch_geonode()
+elif sys.argv[1] == "launch_base":
+    launch_base()
 elif sys.argv[1] == "terminate":
     terminate()
 elif sys.argv[1] == "host":
@@ -151,5 +164,4 @@ elif sys.argv[1] == "key":
     config = readconfig()
     print config.get('ec2', 'KEY_PATH')
 else:
-    print "Usage:\n    python %s launch\n    python %s terminate" % (sys.argv[0], sys.argv[0])
-
+    print "Usage:\n    python %s launch_base\n     python %s launch_geonode\n    python %s terminate" % (sys.argv[0], sys.argv[0], sys.argv[0])

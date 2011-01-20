@@ -1,5 +1,5 @@
 TOMCAT_USER=tomcat6
-TOMCAT_HOME=/opt/tomcat/
+TOMCAT_HOME=/var/lib/tomcat6
 GEOSERVER_DATA_DIR=/var/lib/geoserver_data/geonode/
 HTTPD_USER=www-data
 DJANGO_DEPLOY_DIR=/var/www/geonode/wsgi/geonode

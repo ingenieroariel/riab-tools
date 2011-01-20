@@ -3,7 +3,7 @@ MINIFIED_RESOURCES = True
 SERVE_MEDIA = False
 
 SITENAME = "GeoNode"
-SITEURL = "http://replace.me.siteurl/"
+SITEURL = "http://replace.me.site.url/"
 
 # sqlite
 #DATABASE_NAME = '/var/www/geonode/wsgi/geonode/production.db'

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ## deploy.sh - automatically unpack a geonode release and deploy the various
 ## server components to the appropriate locations
@@ -31,9 +31,9 @@ RELEASE_PACKAGE="$1"
 # SITEURL=http://localhost/
 
 
-if [ -r "deploy.local.sh" ] 
+if [ -r "/home/ubuntu/deploy/deploy.local.sh" ] 
 then 
-    . ./deploy.local.sh
+    . /home/ubuntu/deploy/deploy.local.sh
 else
     echo "Please create a local install profile. (See this script's source for details.)"
     exit
@@ -128,7 +128,7 @@ function deploy_django_app () {
   (cd "$DJANGO_DEPLOY_DIR" && python bootstrap.py)
 
   ## copy in local settings
-  cp local_settings.py "$DJANGO_DEPLOY_DIR/src/GeoNodePy/geonode/"
+  cp ~/deploy/local_settings.py "$DJANGO_DEPLOY_DIR/src/GeoNodePy/geonode/"
 
   ## * transfer database (ie, copy over the sqlite file)
   if [ -e "$DJANGO_BACKUP/production.db" ] 
