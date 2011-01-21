@@ -1,6 +1,6 @@
 DEBUG = TEMPLATE_DEBUG = False
 MINIFIED_RESOURCES = True
-SERVE_MEDIA = False
+SERVE_MEDIA = True 
 
 SITENAME = "GeoNode"
 SITEURL = "http://replace.me.site.url/"
@@ -16,6 +16,10 @@ DATABASE_PASSWORD = "replace.me.pg.pw"
 DATABASE_HOST = 'localhost'
 DATABASE_PORT = '5432'
 
+#CELERY_RESULT_BACKEND = "database"
+#CELERY_RESULT_DBURI = "postgresql://replace.me.pg.user:replace.me.pg.pw@localhost/geonode"
+#CELERYD_LOG_LEVEL = "DEBUG"
+
 LANGUAGE_CODE = 'en'
 
 MEDIA_ROOT = '/var/www/geonode/htdocs/media/'
@@ -23,7 +27,7 @@ MEDIA_URL = SITEURL + 'media/'
 ADMIN_MEDIA_PREFIX = '/static/admin-media-files/'
 
 GEONODE_UPLOAD_PATH = '/var/www/geonode/htdocs/media/'
-GEONODE_CLIENT_LOCATION = SITEURL 
+GEONODE_CLIENT_LOCATION = '/media/static/'
 DEFAULT_LAYERS_OWNER='admin'
 
 GEOSERVER_BASE_URL = SITEURL + "geoserver-geonode-dev/"

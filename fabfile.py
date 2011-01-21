@@ -19,9 +19,11 @@ AMI_BUCKET = ''
 ARCH='i386'
 MAKE_PUBLIC=True
 RELEASE_PKG_URL='http://dev.geonode.org/release/GeoNode-1.0.tar.gz'
+RELEASE_NAME='GeoNode-1.0.tar.gz'
 VERSION='1.0'
 POSTGRES_USER='geonode'
 POSTGRES_PASSWORD=''
+ENABLE_FTP=False
 
 # Geonode build
 
@@ -106,16 +108,18 @@ def install_release():
 
     run('rm -rf ~/release')
     run('mkdir ~/release')
-    run('wget %s -O ~/release/GeoNode-1.0.tar.gz' % RELEASE_PKG_URL)
+    run('wget %s -O ~/release/%s' % (RELEASE_PKG_URL, RELEASE_NAME))
     run('chmod +x ~/deploy/deploy.sh')
     run("perl -pi -e 's/replace.me.site.url/%s/g' ~/deploy/deploy.local.sh" % env.host) 
-    # ToDo: update local_settings.py
     run('cp ~/deploy/sample_local_settings.py ~/deploy/local_settings.py')
     run("perl -pi -e 's/replace.me.site.url/%s/g' ~/deploy/local_settings.py" % env.host) 
     run("perl -pi -e 's/replace.me.pg.user/%s/g' ~/deploy/local_settings.py" % POSTGRES_USER) 
     run("perl -pi -e 's/replace.me.pg.pw/%s/g' ~/deploy/local_settings.py" % POSTGRES_PASSWORD) 
     # Google API Key / SMTP Settings
-    sudo('~/deploy/deploy.sh ~/release/GeoNode-1.0.tar.gz')
+    sudo('~/deploy/deploy.sh ~/release/%s' % (RELEASE_NAME))
+    if(ENABLE_FTP):
+        sudo("perl -pi -e 's/false/true/g' /var/lib/tomcat6/webapps/geoserver-geonode-dev/data/ftp.xml") 
+        sudo("/etc/init.d/tomcat6 restart")
 
 def geonode_dev():
     setup()
