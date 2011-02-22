@@ -50,6 +50,7 @@ def openjdk():
 
 def setup():
     sudo('apt-get -y update')
+    sudo('apt-get install -y python-software-properties')
     # upgrade()
 
     # Choose one between sunjava and openjdk.
@@ -86,15 +87,25 @@ def hosty():
     run('cd geonode;source bin/activate;paver host')
 
 def deploy_prod(host=None):
+    x86_64 = False
+    uname = sudo('uname -a')
+    if("x86_64" in uname):
+        x86_64 = True
     if(host is None):
         host = env.host
     sudo('export DEBIAN_FRONTEND=noninteractive')
-    sudo('add-apt-repository "deb http://apt.opengeo.org/lucid lucid main"')
-    sudo('apt-get -y update')
+    if(x86_64 == False):
+        sudo('add-apt-repository "deb http://apt.opengeo.org/lucid lucid main"')
+        sudo('apt-get -y update')
     sudo('echo "geonode geonode/django_user string admin" | sudo debconf-set-selections')
     sudo('echo "geonode geonode/django_password password adm1n" | sudo debconf-set-selections')
     sudo('echo "geonode geonode/hostname string %s" | sudo debconf-set-selections' % host)
-    sudo("apt-get install -y --force-yes geonode")
+    if(x86_64 == False):
+        sudo("apt-get install -y --force-yes geonode")
+    else:
+        sudo("wget http://apt.opengeo.org/lucid/pool/main/g/geonode/geonode_1.0.final+1_i386.deb")
+        sudo("apt-get install -y tomcat6 postgresql-8.4 libjpeg-dev libpng-dev python-gdal python-psycopg2 apache2 libapache2-mod-wsgi")
+        sudo("dpkg --force-architecture -i geonode_1.0.final+1_i386.deb")
 
 def install_release():
     sudo('apt-get install -y zip')
