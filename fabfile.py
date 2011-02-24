@@ -60,10 +60,24 @@ def setup():
     #openjdk()
     sunjava()
 
-    sudo('apt-get install -y zip subversion git-core binutils build-essential python-dev python-setuptools python-imaging python-reportlab gdal-bin libproj-dev libgeos-dev unzip maven2 python-urlgrabber')
+    sudo('apt-get install -y zip subversion git-core binutils build-essential python-dev python-setuptools python-imaging python-reportlab gdal-bin libproj-dev libgeos-dev unzip maven2 python-urlgrabber libpq-dev')
+
+def setup_pgsql(setup_geonode_db):
+    sudo("apt-get install -y postgresql-8.4 libpq-dev python-psycopg2")
+    # ToDo: Add postgis support
+    # update pg_hba.conf to allow for md5 local connections
+    db_exists = int(sudo("psql -qAt -c \"select count(*) from pg_catalog.pg_database where datname = 'geonode'\"", user="postgres"))
+    if(setup_geonode_db):
+        if(db_exists > 0):
+            sudo("dropdb geonode", user="postgres")
+            sudo("dropuser geonode", user="postgres")
+        sudo("createuser -SDR geonode", user="postgres")
+        sudo("createdb -O geonode geonode", user="postgres")
+        sudo("psql -c \"alter user geonode with encrypted password '%s'\" " % (POSTGRES_PASSWORD), user="postgres")
 
 def setup_prod():
-    sudo("apt-get install -y tomcat6 postgresql-8.4 libpq-dev libjpeg-dev libpng-dev python-gdal python-psycopg2 apache2 libapache2-mod-wsgi")
+    setup_pgsql(True)
+    sudo("apt-get install -y tomcat6 libjpeg-dev libpng-dev python-gdal apache2 libapache2-mod-wsgi")
 
 def build():
     #run('git clone git://github.com/GeoNode/geonode.git')
@@ -76,7 +90,9 @@ def build():
     run('cd geonode;source bin/activate; paver make_release')
 
 def switch_branch(branch):
+    # git reset --hard
     # ReRun shared/core-libs.txt through pip after switching
+    # copy sample_local_settings.py to local_settings.py
     # syncdb to handle any new apps
     pass
 
@@ -128,16 +144,7 @@ def install_release():
     #except:
     #    pass
 
-    setup_postgres = True
-    db_exists = int(sudo("psql -qAt -c \"select count(*) from pg_catalog.pg_database where datname = 'geonode'\"", user="postgres"))
-    if(setup_postgres):
-        if(db_exists > 0):
-            sudo("dropdb geonode", user="postgres")
-            sudo("dropuser geonode", user="postgres")
-        sudo("createuser -SDR geonode", user="postgres")
-        sudo("createdb -O geonode geonode", user="postgres")
-        sudo("psql -c \"alter user geonode with encrypted password '%s'\" " % (POSTGRES_PASSWORD), user="postgres")
-
+    setup_pgsql(True)
 
     run('rm -rf ~/release')
     run('mkdir ~/release')
