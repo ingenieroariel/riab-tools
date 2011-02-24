@@ -18,9 +18,12 @@ KEY_PATH='~/.ssh/' # trailing slash please
 AMI_BUCKET = ''
 ARCH='i386'
 MAKE_PUBLIC=True
-RELEASE_PKG_URL='http://dev.geonode.org/release/GeoNode-1.0.tar.gz'
-RELEASE_NAME='GeoNode-1.0.tar.gz'
-VERSION='1.0'
+RELEASE_PKG_URL='https://s3.amazonaws.com/geonode-release/GeoNode-1.0.1-2011-02-23_BU.tar.gz'
+RELEASE_NAME='GeoNode-1.0.1-2011-02-23.tar.gz'
+VERSION='1.0.1'
+#RELEASE_PKG_URL='http://dev.geonode.org/release/GeoNode-1.0.tar.gz'
+#RELEASE_NAME='GeoNode-1.0.tar.gz'
+#VERSION='1.0'
 POSTGRES_USER='geonode'
 POSTGRES_PASSWORD=''
 ENABLE_FTP=False
@@ -59,6 +62,9 @@ def setup():
 
     sudo('apt-get install -y zip subversion git-core binutils build-essential python-dev python-setuptools python-imaging python-reportlab gdal-bin libproj-dev libgeos-dev unzip maven2 python-urlgrabber')
 
+def setup_prod():
+    sudo("apt-get install -y tomcat6 postgresql-8.4 libpq-dev libjpeg-dev libpng-dev python-gdal python-psycopg2 apache2 libapache2-mod-wsgi")
+
 def build():
     #run('git clone git://github.com/GeoNode/geonode.git')
     run('git clone git://github.com/jj0hns0n/geonode.git')
@@ -68,6 +74,11 @@ def build():
     run('cd geonode;python bootstrap.py')
     run('cd geonode;source bin/activate; paver build')
     run('cd geonode;source bin/activate; paver make_release')
+
+def switch_branch(branch):
+    # ReRun shared/core-libs.txt through pip after switching
+    # syncdb to handle any new apps
+    pass
 
 def deploy_dev():
     run("perl -pi -e 's/127.0.0.1/0.0.0.0/g' geonode/shared/dev-paste.ini")
@@ -104,7 +115,6 @@ def deploy_prod(host=None):
         sudo("apt-get install -y --force-yes geonode")
     else:
         sudo("wget http://apt.opengeo.org/lucid/pool/main/g/geonode/geonode_1.0.final+1_i386.deb")
-        sudo("apt-get install -y tomcat6 postgresql-8.4 libjpeg-dev libpng-dev python-gdal python-psycopg2 apache2 libapache2-mod-wsgi")
         sudo("dpkg --force-architecture -i geonode_1.0.final+1_i386.deb")
 
 def install_release():
@@ -112,10 +122,22 @@ def install_release():
     run('rm -rf ~/deploy')
     run('mkdir ~/deploy')
     put('./deploy/*', '~/deploy/')
+   
     #try:
     #    run('cp /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/local_settings.py ~/deploy')
     #except:
     #    pass
+
+    setup_postgres = True
+    db_exists = int(sudo("psql -qAt -c \"select count(*) from pg_catalog.pg_database where datname = 'geonode'\"", user="postgres"))
+    if(setup_postgres):
+        if(db_exists > 0):
+            sudo("dropdb geonode", user="postgres")
+            sudo("dropuser geonode", user="postgres")
+        sudo("createuser -SDR geonode", user="postgres")
+        sudo("createdb -O geonode geonode", user="postgres")
+        sudo("psql -c \"alter user geonode with encrypted password '%s'\" " % (POSTGRES_PASSWORD), user="postgres")
+
 
     run('rm -rf ~/release')
     run('mkdir ~/release')
@@ -126,11 +148,24 @@ def install_release():
     run("perl -pi -e 's/replace.me.site.url/%s/g' ~/deploy/local_settings.py" % env.host) 
     run("perl -pi -e 's/replace.me.pg.user/%s/g' ~/deploy/local_settings.py" % POSTGRES_USER) 
     run("perl -pi -e 's/replace.me.pg.pw/%s/g' ~/deploy/local_settings.py" % POSTGRES_PASSWORD) 
+    sudo("mkdir -p /var/www/geonode/wsgi/geonode")
     # Google API Key / SMTP Settings
     sudo('~/deploy/deploy.sh ~/release/%s' % (RELEASE_NAME))
     if(ENABLE_FTP):
         sudo("perl -pi -e 's/false/true/g' /var/lib/tomcat6/webapps/geoserver-geonode-dev/data/ftp.xml") 
         sudo("/etc/init.d/tomcat6 restart")
+    
+    setup_apache = True
+    if(setup_apache):
+        run('mkdir -p ~/wsgi')
+        put('./wsgi/*', '~/wsgi/')
+        run("perl -pi -e 's/replace.me.site.url/%s/g' ~/wsgi/geonode" % env.host)
+        sudo("cp ~/wsgi/geonode /etc/apache2/sites-available/")
+        sudo("cp ~/wsgi/geonode.wsgi /var/www/geonode/wsgi/")
+        sudo("a2ensite geonode")
+        sudo("a2dissite default")
+        sudo("a2enmod proxy_http")
+        sudo("/etc/init.d/apache2 restart")
 
 def geonode_dev():
     setup()
@@ -140,7 +175,13 @@ def geonode_dev():
 
 def geonode_prod():
     setup()
+    setup_prod()
     deploy_prod()
+
+def geonode_release():
+    setup()
+    setup_prod()
+    install_release()
 
 def install_ec2_tools():
     sudo('export DEBIAN_FRONTEND=noninteractive')
