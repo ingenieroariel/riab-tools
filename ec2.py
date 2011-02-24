@@ -15,12 +15,15 @@ import ConfigParser
 
 CONFIG_FILE=".gnec2.cfg"
 
-MAVERIK_64="ami-688c7801"
-MAVERIK_32="ami-1a837773"
-LUCID_64="ami-da0cf8b3"
-LUCID_32="ami-a403f7cd"
+LUCID_32="ami-3e02f257"
+LUCID_64="ami-3202f25b"
+MAVERIK_32="ami-ccf405a5"
+MAVERIK_64="ami-cef405a7"
 
 GEONODE_LUCID_32="ami-98ad5df1"
+GEONODE_LUCID_64=""
+GEONODE_MAVERIK_32=""
+GEONODE_MAVERIK_64=""
 
 def writeconfig(config):
     # Writing our configuration file to CONFIG_FILE
