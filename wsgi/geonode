@@ -1,0 +1,37 @@
+<VirtualHost *:80>
+   Servername replace.me.site.url
+   ServerAdmin webmaster@localhost
+   DocumentRoot /var/www/geonode/htdocs/
+   <Directory />
+       Options FollowSymLinks
+       AllowOverride None
+   </Directory>
+   <Directory /var/www/geonode/htdocs>
+       Options Indexes FollowSymLinks MultiViews
+       AllowOverride None
+       Order allow,deny
+       allow from all
+   </Directory>
+   <Proxy *>
+       Order allow,deny
+       Allow from all
+   </Proxy>
+
+   ErrorLog /var/log/apache2/error.log
+   LogLevel warn
+   CustomLog /var/log/apache2/access.log combined
+
+   Alias /geonode-client/ /var/www/geonode/htdocs/geonode-client/
+   Alias /media/ /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/media/
+   Alias /admin-media/ /var/www/geonode/wsgi/geonode/lib/python2.6/site-packages/django/contrib/admin/media/
+
+   WSGIPassAuthorization On
+   WSGIScriptAlias / /var/www/geonode/wsgi/geonode.wsgi
+
+   ProxyPreserveHost On
+
+   ProxyPass /geoserver-geonode-dev http://localhost:8080/geoserver-geonode-dev
+   ProxyPassReverse /geoserver-geonode-dev http://localhost:8080/geoserver-geonode-dev
+   ProxyPass /geonetwork http://localhost:8080/geonetwork
+   ProxyPassReverse /geonetwork http://localhost:8080/geonetwork
+</VirtualHost>
