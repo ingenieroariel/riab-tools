@@ -24,7 +24,7 @@ LANGUAGE_CODE = 'en'
 
 MEDIA_ROOT = '/var/www/geonode/htdocs/media/'
 MEDIA_URL = SITEURL + 'media/'
-ADMIN_MEDIA_PREFIX = '/static/admin-media-files/'
+ADMIN_MEDIA_PREFIX = '/admin-media/'
 
 GEONODE_UPLOAD_PATH = '/var/www/geonode/htdocs/media/'
 GEONODE_CLIENT_LOCATION = '/media/static/'
