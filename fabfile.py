@@ -18,14 +18,14 @@ KEY_PATH='~/.ssh/' # trailing slash please
 AMI_BUCKET = ''
 ARCH='i386'
 MAKE_PUBLIC=True
-RELEASE_PKG_URL='https://s3.amazonaws.com/geonode-release/GeoNode-1.0.1-2011-02-23_BU.tar.gz'
-RELEASE_NAME='GeoNode-1.0.1-2011-02-23.tar.gz'
+RELEASE_PKG_URL='https://s3.amazonaws.com/geonode-release/GeoNode-1.0.1-2011-02-24.tar.gz'
+RELEASE_NAME='GeoNode-1.0.1-2011-02-24.tar.gz'
 VERSION='1.0.1'
 #RELEASE_PKG_URL='http://dev.geonode.org/release/GeoNode-1.0.tar.gz'
 #RELEASE_NAME='GeoNode-1.0.tar.gz'
 #VERSION='1.0'
 POSTGRES_USER='geonode'
-POSTGRES_PASSWORD=''
+POSTGRES_PASSWORD='g30n0d3'
 ENABLE_FTP=False
 
 # Geonode build
@@ -62,7 +62,7 @@ def setup():
 
     sudo('apt-get install -y zip subversion git-core binutils build-essential python-dev python-setuptools python-imaging python-reportlab gdal-bin libproj-dev libgeos-dev unzip maven2 python-urlgrabber libpq-dev')
 
-def setup_pgsql(setup_geonode_db):
+def setup_pgsql(setup_geonode_db=True):
     sudo("apt-get install -y postgresql-8.4 libpq-dev python-psycopg2")
     # ToDo: Add postgis support
     # update pg_hba.conf to allow for md5 local connections
@@ -79,6 +79,13 @@ def setup_prod():
     setup_pgsql(True)
     sudo("apt-get install -y tomcat6 libjpeg-dev libpng-dev python-gdal apache2 libapache2-mod-wsgi")
 
+def switch_branch(branch):
+    # git reset --hard
+    # pip install -r shared/core-libs.txt 
+    # cp src/GeoNode/geonode/sample_local_settings.py src/GeoNode/geonode/local_settings.py 
+    # django-admin.py syncdb --settings=geonode.settings
+    pass
+
 def build():
     #run('git clone git://github.com/GeoNode/geonode.git')
     run('git clone git://github.com/jj0hns0n/geonode.git')
@@ -89,11 +96,8 @@ def build():
     run('cd geonode;source bin/activate; paver build')
     run('cd geonode;source bin/activate; paver make_release')
 
-def switch_branch(branch):
-    # git reset --hard
-    # ReRun shared/core-libs.txt through pip after switching
-    # copy sample_local_settings.py to local_settings.py
-    # syncdb to handle any new apps
+def upload_release():
+    # Use upload.py script
     pass
 
 def deploy_dev():
@@ -158,9 +162,8 @@ def install_release():
     sudo("mkdir -p /var/www/geonode/wsgi/geonode")
     # Google API Key / SMTP Settings
     sudo('~/deploy/deploy.sh ~/release/%s' % (RELEASE_NAME))
-    if(ENABLE_FTP):
-        sudo("perl -pi -e 's/false/true/g' /var/lib/tomcat6/webapps/geoserver-geonode-dev/data/ftp.xml") 
-        sudo("/etc/init.d/tomcat6 restart")
+    
+    # createsuperuser / changepassword
     
     setup_apache = True
     if(setup_apache):
@@ -173,6 +176,22 @@ def install_release():
         sudo("a2dissite default")
         sudo("a2enmod proxy_http")
         sudo("/etc/init.d/apache2 restart")
+
+def setup_batch_upload():
+    run('mkdir ~/celery')
+    put('./celery/*', '~/celery/')
+    sudo("chown root:root /home/ubuntu/celery/celeryd")
+    sudo("chmod 0700 /home/ubuntu/celery/celeryd") 
+    sudo("mv /home/ubuntu/celery/celeryd /etc/init.d")
+    sudo("mv /home/ubuntu/celery/celeryd-default /etc/default/celeryd")
+    sudo("update-rc.d celeryd defaults")
+    sudo("/etc/init.d/celeryd start")
+    run("rm -rf ~/celery")
+    sudo("perl -pi -e 's/false/true/g' /var/lib/tomcat6/webapps/geoserver-geonode-dev/data/ftp.xml")
+    internal_ip = run("curl http://169.254.169.254/latest/meta-data/local-ipv4")
+    sudo('echo "GEOSERVER_IP_WHITELIST = [\'127.0.0.1\',\'%s\']" >> /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/local_settings.py' % internal_ip )
+    sudo("/etc/init.d/tomcat6 restart")
+    sudo("/etc/init.d/apache2 restart")
 
 def geonode_dev():
     setup()
