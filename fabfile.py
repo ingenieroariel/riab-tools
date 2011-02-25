@@ -149,6 +149,18 @@ def deploy_prod(host=None):
         sudo("wget http://apt.opengeo.org/lucid/pool/main/g/geonode/geonode_1.0.final+1_i386.deb")
         sudo("dpkg --force-architecture -i geonode_1.0.final+1_i386.deb")
 
+def setup_geonode_wsgi():
+    run('mkdir -p ~/wsgi')
+    put('./wsgi/*', '~/wsgi/')
+    run("perl -pi -e 's/replace.me.site.url/%s/g' ~/wsgi/geonode" % host)
+    sudo("cp ~/wsgi/geonode /etc/apache2/sites-available/")
+    sudo("cp ~/wsgi/geonode.wsgi /var/www/geonode/wsgi/")
+    sudo("a2ensite geonode")
+    sudo("a2dissite default")
+    sudo("a2enmod proxy_http")
+    sudo("/etc/init.d/apache2 restart")
+    run('rm -rf ~/wsgi')
+
 def install_release(host=None):
     if(host == None):
         host = env.host
@@ -185,18 +197,11 @@ def install_release(host=None):
     run("perl -pi -e 's/replace.me.admin.pw/%s/g' ~/changepw.py" % ADMIN_PASSWORD) 
     sudo('cd /var/www/geonode/wsgi/geonode;source bin/activate;cat ~/changepw.py | django-admin.py shell')
     run('rm ~/changepw.py')
-    
-    setup_apache = True
-    if(setup_apache):
-        run('mkdir -p ~/wsgi')
-        put('./wsgi/*', '~/wsgi/')
-        run("perl -pi -e 's/replace.me.site.url/%s/g' ~/wsgi/geonode" % host)
-        sudo("cp ~/wsgi/geonode /etc/apache2/sites-available/")
-        sudo("cp ~/wsgi/geonode.wsgi /var/www/geonode/wsgi/")
-        sudo("a2ensite geonode")
-        sudo("a2dissite default")
-        sudo("a2enmod proxy_http")
-        sudo("/etc/init.d/apache2 restart")
+    run('rm -rf ~/release')
+    run('rm -rf ~/deploy')
+  
+    setup_geonode_wsgi()
+
 
 def setup_batch_upload(internal_ip=None):
     run('mkdir ~/celery')
