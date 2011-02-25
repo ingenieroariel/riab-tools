@@ -133,8 +133,8 @@ def deploy_prod(host=None):
     if(x86_64 == False):
         sudo('add-apt-repository "deb http://apt.opengeo.org/lucid lucid main"')
         sudo('apt-get -y update')
-    sudo('echo "geonode geonode/django_user string admin" | sudo debconf-set-selections')
-    sudo('echo "geonode geonode/django_password password adm1n" | sudo debconf-set-selections')
+    sudo('echo "geonode geonode/django_user string %s" | sudo debconf-set-selections' % ADMIN_USER)
+    sudo('echo "geonode geonode/django_password password %s" | sudo debconf-set-selections' % ADMIN_PASSWORD)
     sudo('echo "geonode geonode/hostname string %s" | sudo debconf-set-selections' % host)
     if(x86_64 == False):
         sudo("apt-get install -y --force-yes geonode")
