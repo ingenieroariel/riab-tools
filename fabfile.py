@@ -18,14 +18,17 @@ KEY_PATH='~/.ssh/' # trailing slash please
 AMI_BUCKET = ''
 ARCH='i386'
 MAKE_PUBLIC=True
-RELEASE_PKG_URL='https://s3.amazonaws.com/geonode-release/GeoNode-1.0.1-2011-02-24.tar.gz'
-RELEASE_NAME='GeoNode-1.0.1-2011-02-24.tar.gz'
+RELEASE_PKG_URL='https://s3.amazonaws.com/geonode-release/GeoNode-1.0.1-2011-02-25.tar.gz'
+RELEASE_NAME='GeoNode-1.0.1-2011-02-25.tar.gz'
 VERSION='1.0.1'
 #RELEASE_PKG_URL='http://dev.geonode.org/release/GeoNode-1.0.tar.gz'
 #RELEASE_NAME='GeoNode-1.0.tar.gz'
 #VERSION='1.0'
 POSTGRES_USER='geonode'
 POSTGRES_PASSWORD='g30n0d3'
+ADMIN_USER='admin' # Should not be modified
+ADMIN_PASSWORD='adm1n'
+ADMIN_EMAIL='admin@admin.admin'
 ENABLE_FTP=False
 
 # Geonode build
@@ -79,10 +82,12 @@ def setup_prod():
     setup_pgsql(True)
     sudo("apt-get install -y tomcat6 libjpeg-dev libpng-dev python-gdal apache2 libapache2-mod-wsgi")
 
-def switch_branch(branch):
+def switch_branch(branch_name):
+    # source bin/activate
     # git reset --hard
+    # git checkout <branch_name>
     # pip install -r shared/core-libs.txt 
-    # cp src/GeoNode/geonode/sample_local_settings.py src/GeoNode/geonode/local_settings.py 
+    # cp src/GeoNodePy/geonode/sample_local_settings.py src/GeoNodePy/geonode/local_settings.py
     # django-admin.py syncdb --settings=geonode.settings
     pass
 
@@ -109,7 +114,7 @@ def deploy_dev():
     # set the django settings module in the activate script to avoid having to type in some cases
     run('echo "export DJANGO_SETTINGS_MODULE=\'geonode.settings\'" >> geonode/bin/activate')
     # create a passwordless superuser, you can use 'django-admin.py changepassword admin' afterwards
-    run('cd geonode;source bin/activate;django-admin.py createsuperuser --noinput --username=admin --email=admin@admin.admin')
+    run('cd geonode;source bin/activate;django-admin.py createsuperuser --noinput --username=%s --email=%s' % (ADMIN_USER, ADMIN_EMAIL))
     print "In order to login you have to run first 'django-admin.py changepassword admin'"
 
 def hosty():
@@ -164,6 +169,13 @@ def install_release():
     sudo('~/deploy/deploy.sh ~/release/%s' % (RELEASE_NAME))
     
     # createsuperuser / changepassword
+    sudo('echo "export DJANGO_SETTINGS_MODULE=\'geonode.settings\'" >> /var/www/geonode/wsgi/geonode/bin/activate')
+    sudo('cd /var/www/geonode/wsgi/geonode;source bin/activate;django-admin.py createsuperuser --noinput --username=%s --email=%s' % (ADMIN_USER, ADMIN_EMAIL))
+    put('changepw.py', '~/')
+    run("perl -pi -e 's/replace.me.admin.user/%s/g' ~/changepw.py" % ADMIN_USER) 
+    run("perl -pi -e 's/replace.me.admin.pw/%s/g' ~/changepw.py" % ADMIN_PASSWORD) 
+    sudo('cd /var/www/geonode/wsgi/geonode;source bin/activate;cat ~/changepw.py | django-admin.py shell')
+    run('rm ~/changepw.py')
     
     setup_apache = True
     if(setup_apache):
