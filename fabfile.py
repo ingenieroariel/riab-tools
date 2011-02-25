@@ -4,18 +4,23 @@
 #     fab -H user@hostname geonode_dev
 #         -- or --
 #     fab -H user@hostname geonode_prod
+#         -- or --
+#     fab -H user@hostname geonode_release
+#         -- or --
+#     fab -H user@hostname create_ami 
 
+import os
 import datetime
 
 from fabric.api import env, sudo, run, cd, local, put
 
-#ToDo Move to external file
-AWS_USER_ID=''
-AWS_ACCESS_KEY_ID=''
-AWS_SECRET_ACCESS_KEY=''
-KEY_BASE=''
+AWS_USER_ID=os.environ['AWS_USER_ID']
+AWS_ACCESS_KEY_ID=os.environ['AWS_ACCESS_KEY_ID']
+AWS_SECRET_ACCESS_KEY=os.environ['AWS_SECRET_ACCESS_KEY']
+KEY_BASE=os.environ['EC2_KEY_BASE']
 KEY_PATH='~/.ssh/' # trailing slash please
-AMI_BUCKET = ''
+RELEASE_BUCKET = 'geonode-release'
+AMI_BUCKET = 'geonode-ami-dev'
 ARCH='i386'
 MAKE_PUBLIC=True
 RELEASE_PKG_URL='https://s3.amazonaws.com/geonode-release/GeoNode-1.0.1-2011-02-25.tar.gz'
@@ -82,15 +87,6 @@ def setup_prod():
     setup_pgsql(True)
     sudo("apt-get install -y tomcat6 libjpeg-dev libpng-dev python-gdal apache2 libapache2-mod-wsgi")
 
-def switch_branch(branch_name):
-    # source bin/activate
-    # git reset --hard
-    # git checkout <branch_name>
-    # pip install -r shared/core-libs.txt 
-    # cp src/GeoNodePy/geonode/sample_local_settings.py src/GeoNodePy/geonode/local_settings.py
-    # django-admin.py syncdb --settings=geonode.settings
-    pass
-
 def build():
     #run('git clone git://github.com/GeoNode/geonode.git')
     run('git clone git://github.com/jj0hns0n/geonode.git')
@@ -101,9 +97,20 @@ def build():
     run('cd geonode;source bin/activate; paver build')
     run('cd geonode;source bin/activate; paver make_release')
 
+def switch_branch(branch_name):
+    run('cd geonode;git reset --hard')
+    run('cd geonode;git checkout %s' % branch_name)
+    run('cd geonode;source bin/activate;pip install -r shared/core-libs.txt')
+    run('cd geonode;cp src/GeoNodePy/geonode/sample_local_settings.py src/GeoNodePy/geonode/local_settings.py')
+    run('cd geonode;source bin/activate;django-admin.py syncdb --settings=geonode.settings')
+    run('cd geonode;source bin/activate; paver make_release')
+
 def upload_release():
-    # Use upload.py script
-    pass
+    put('./upload.py', '~/')
+    release_file = run('ls ~/geonode/shared/GeoNode*.tar.gz')
+    run('cd geonode/share;export AWS_ACCESS_KEY_ID=%s;export AWS_SECRET_ACCESS_KEY=%s;python ../../upload.py %s %s' (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,RELEASE_BUCKET,release_file)) 
+    run('rm ~/upload.py')
+    return release_file
 
 def deploy_dev():
     run("perl -pi -e 's/127.0.0.1/0.0.0.0/g' geonode/shared/dev-paste.ini")
@@ -142,7 +149,9 @@ def deploy_prod(host=None):
         sudo("wget http://apt.opengeo.org/lucid/pool/main/g/geonode/geonode_1.0.final+1_i386.deb")
         sudo("dpkg --force-architecture -i geonode_1.0.final+1_i386.deb")
 
-def install_release():
+def install_release(host=None):
+    if(host == None):
+        host = env.host
     sudo('apt-get install -y zip')
     run('rm -rf ~/deploy')
     run('mkdir ~/deploy')
@@ -159,9 +168,9 @@ def install_release():
     run('mkdir ~/release')
     run('wget %s -O ~/release/%s' % (RELEASE_PKG_URL, RELEASE_NAME))
     run('chmod +x ~/deploy/deploy.sh')
-    run("perl -pi -e 's/replace.me.site.url/%s/g' ~/deploy/deploy.local.sh" % env.host) 
+    run("perl -pi -e 's/replace.me.site.url/%s/g' ~/deploy/deploy.local.sh" % host) 
     run('cp ~/deploy/sample_local_settings.py ~/deploy/local_settings.py')
-    run("perl -pi -e 's/replace.me.site.url/%s/g' ~/deploy/local_settings.py" % env.host) 
+    run("perl -pi -e 's/replace.me.site.url/%s/g' ~/deploy/local_settings.py" % host) 
     run("perl -pi -e 's/replace.me.pg.user/%s/g' ~/deploy/local_settings.py" % POSTGRES_USER) 
     run("perl -pi -e 's/replace.me.pg.pw/%s/g' ~/deploy/local_settings.py" % POSTGRES_PASSWORD) 
     sudo("mkdir -p /var/www/geonode/wsgi/geonode")
@@ -181,7 +190,7 @@ def install_release():
     if(setup_apache):
         run('mkdir -p ~/wsgi')
         put('./wsgi/*', '~/wsgi/')
-        run("perl -pi -e 's/replace.me.site.url/%s/g' ~/wsgi/geonode" % env.host)
+        run("perl -pi -e 's/replace.me.site.url/%s/g' ~/wsgi/geonode" % host)
         sudo("cp ~/wsgi/geonode /etc/apache2/sites-available/")
         sudo("cp ~/wsgi/geonode.wsgi /var/www/geonode/wsgi/")
         sudo("a2ensite geonode")
@@ -189,7 +198,7 @@ def install_release():
         sudo("a2enmod proxy_http")
         sudo("/etc/init.d/apache2 restart")
 
-def setup_batch_upload():
+def setup_batch_upload(internal_ip=None):
     run('mkdir ~/celery')
     put('./celery/*', '~/celery/')
     sudo("chown root:root /home/ubuntu/celery/celeryd")
@@ -200,7 +209,8 @@ def setup_batch_upload():
     sudo("/etc/init.d/celeryd start")
     run("rm -rf ~/celery")
     sudo("perl -pi -e 's/false/true/g' /var/lib/tomcat6/webapps/geoserver-geonode-dev/data/ftp.xml")
-    internal_ip = run("curl http://169.254.169.254/latest/meta-data/local-ipv4")
+    if(internal_ip == None):
+        internal_ip = run("curl http://169.254.169.254/latest/meta-data/local-ipv4")
     sudo('echo "GEOSERVER_IP_WHITELIST = [\'127.0.0.1\',\'%s\']" >> /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/local_settings.py' % internal_ip )
     sudo("/etc/init.d/tomcat6 restart")
     sudo("/etc/init.d/apache2 restart")
@@ -243,7 +253,10 @@ def copy_keys():
 
 def create_ami():
     setup()
-    deploy_prod(host='replace.me')
+    setup_prod()
+    #deploy_prod(host='replace.me.host')
+    install_release(host='replace.me.host')
+    setup_batch_upload(internal_ip='replace.me.internal')
     cleanup_temp()
     copy_keys()
     put('./update-instance', '~/')
