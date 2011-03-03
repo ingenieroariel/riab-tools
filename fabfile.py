@@ -86,10 +86,11 @@ def setup_pgsql(setup_geonode_db=True):
 def setup_prod():
     setup_pgsql(True)
     sudo("apt-get install -y tomcat6 libjpeg-dev libpng-dev python-gdal apache2 libapache2-mod-wsgi")
+    # -Xms1024m -Xmx1024m -XX:NewSize=256m -XX:MaxNewSize=256m -XX:PermSize=256m -XX:MaxPermSize=256m
 
 def build():
-    #run('git clone git://github.com/GeoNode/geonode.git')
-    run('git clone git://github.com/jj0hns0n/geonode.git')
+    run('git clone git://github.com/GeoNode/geonode.git')
+    #run('git clone git://github.com/jj0hns0n/geonode.git')
     run('cd geonode;git submodule update --init')
     # WORKAROUND: Avoid compiling reportlab because it is already installed via apt-get and it hangs with fabric (too much data)
     run("sed '/reportlab/d' geonode/shared/core-libs.txt > core-libs.txt;mv core-libs.txt geonode/shared/core-libs.txt")
@@ -107,8 +108,8 @@ def switch_branch(branch_name):
 
 def upload_release():
     put('./upload.py', '~/')
-    release_file = run('ls ~/geonode/shared/GeoNode*.tar.gz')
-    run('cd geonode/share;export AWS_ACCESS_KEY_ID=%s;export AWS_SECRET_ACCESS_KEY=%s;python ../../upload.py %s %s' (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,RELEASE_BUCKET,release_file)) 
+    release_file = str(run('ls ~/geonode/shared/GeoNode*.tar.gz'))
+    run('cd geonode/shared;export AWS_ACCESS_KEY_ID=%s;export AWS_SECRET_ACCESS_KEY=%s;python ~/upload.py %s %s' % (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,RELEASE_BUCKET,release_file)) 
     run('rm ~/upload.py')
     return release_file
 
@@ -149,7 +150,7 @@ def deploy_prod(host=None):
         sudo("wget http://apt.opengeo.org/lucid/pool/main/g/geonode/geonode_1.0.final+1_i386.deb")
         sudo("dpkg --force-architecture -i geonode_1.0.final+1_i386.deb")
 
-def setup_geonode_wsgi():
+def setup_geonode_wsgi(host):
     run('mkdir -p ~/wsgi')
     put('./wsgi/*', '~/wsgi/')
     run("perl -pi -e 's/replace.me.site.url/%s/g' ~/wsgi/geonode" % host)
@@ -173,8 +174,6 @@ def install_release(host=None):
     #    run('cp /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/local_settings.py ~/deploy')
     #except:
     #    pass
-
-    setup_pgsql(True)
 
     run('rm -rf ~/release')
     run('mkdir ~/release')
@@ -200,7 +199,7 @@ def install_release(host=None):
     run('rm -rf ~/release')
     run('rm -rf ~/deploy')
   
-    setup_geonode_wsgi()
+    setup_geonode_wsgi(host)
 
 
 def setup_batch_upload(internal_ip=None):
@@ -224,7 +223,7 @@ def geonode_dev():
     setup()
     build()
     deploy_dev()
-    hosty()
+    #hosty()
 
 def geonode_prod():
     setup()
@@ -257,11 +256,11 @@ def copy_keys():
     pass
 
 def create_ami():
-    setup()
-    setup_prod()
+    #setup()
+    #setup_prod()
     #deploy_prod(host='replace.me.host')
-    install_release(host='replace.me.host')
-    setup_batch_upload(internal_ip='replace.me.internal')
+    #install_release(host='replace.me.host')
+    #setup_batch_upload(internal_ip='replace.me.internal')
     cleanup_temp()
     copy_keys()
     put('./update-instance', '~/')
