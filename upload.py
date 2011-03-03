@@ -9,7 +9,7 @@ conn = boto.connect_s3(os.environ['AWS_ACCESS_KEY_ID'], os.environ['AWS_SECRET_A
 bucket = conn.get_bucket(bucket_name)
 
 k = Key(bucket)
-k.key = file_name
+k.key = file_name.split('/')[-1]
 k.set_contents_from_filename(file_name)
 
 print file_name + " uploaded to " + bucket_name
