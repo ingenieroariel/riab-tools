@@ -13,6 +13,7 @@ import os
 import datetime
 
 from fabric.api import env, sudo, run, cd, local, put
+from fabric.contrib.project import rsync_project
 
 AWS_USER_ID=os.environ['AWS_USER_ID']
 AWS_ACCESS_KEY_ID=os.environ['AWS_ACCESS_KEY_ID']
@@ -219,6 +220,14 @@ def setup_batch_upload(internal_ip=None):
     sudo("/etc/init.d/tomcat6 restart")
     sudo("/etc/init.d/apache2 restart")
 
+def setup_deb():
+    sudo('apt-get -y update')
+    sudo('echo "postfix postfix/main_mailer_type    select  No configuration" | sudo debconf-set-selections')
+    sudo('echo "postfix postfix/mailname    string  localhost" | sudo debconf-set-selections')
+    sudo('apt-get install -y debhelper devscripts')
+    run('mkdir -p geonode-deb')
+    rsync_project('~/geonode-deb/', './deb/debian')
+
 def geonode_dev():
     setup()
     build()
@@ -234,6 +243,12 @@ def geonode_release():
     setup()
     setup_prod()
     install_release()
+
+def geonode_deb():
+    setup_deb()
+    run('wget %s -O ~/geonode-deb/%s' % (RELEASE_PKG_URL, RELEASE_NAME))
+    run('cd geonode-deb; tar xvf %s' % RELEASE_NAME)
+    run('cd geonode-deb; debuild -uc -us')
 
 def install_ec2_tools():
     sudo('export DEBIAN_FRONTEND=noninteractive')
