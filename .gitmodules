@@ -1,0 +1,6 @@
+[submodule "rpm"]
+	path = rpm
+	url = git://github.com/GeoNode/geonode-rpm.git
+[submodule "deb"]
+	path = deb
+	url = git://github.com/GeoNode/geonode-deb.git
