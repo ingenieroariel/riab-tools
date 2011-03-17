@@ -25,6 +25,8 @@ GEONODE_LUCID_64=""
 GEONODE_MAVERIK_32=""
 GEONODE_MAVERIK_64=""
 
+GEONODE_LATEST="ami-9ceb19f5"
+
 def writeconfig(config):
     # Writing our configuration file to CONFIG_FILE
     configfile = open(CONFIG_FILE, 'wb')
@@ -52,7 +54,7 @@ def readconfig(default_ami=None):
     return config
 
 def launch_geonode():
-    readconfig(default_ami=GEONODE_LUCID_32)
+    readconfig(default_ami=GEONODE_LATEST)
     launch()
 
 def launch_base():

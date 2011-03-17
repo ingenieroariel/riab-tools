@@ -98,6 +98,7 @@ def build():
     run('cd geonode;python bootstrap.py')
     run('cd geonode;source bin/activate; paver build')
     run('cd geonode;source bin/activate; paver make_release')
+    run('mkdir ~/release;cp ~/geonode/shared/GeoNode*.tar.gz ~/release')
 
 def switch_branch(branch_name):
     run('cd geonode;git reset --hard')
@@ -176,9 +177,9 @@ def install_release(host=None):
     #except:
     #    pass
 
-    run('rm -rf ~/release')
-    run('mkdir ~/release')
-    run('wget %s -O ~/release/%s' % (RELEASE_PKG_URL, RELEASE_NAME))
+#    run('rm -rf ~/release')
+#    run('mkdir ~/release')
+#    run('wget %s -O ~/release/%s' % (RELEASE_PKG_URL, RELEASE_NAME))
     run('chmod +x ~/deploy/deploy.sh')
     run("perl -pi -e 's/replace.me.site.url/%s/g' ~/deploy/deploy.local.sh" % host) 
     run('cp ~/deploy/sample_local_settings.py ~/deploy/local_settings.py')
@@ -324,3 +325,21 @@ def reload():
 def restart():
     "Restart (or just start) the server"
     #sudo('restart readthedocs-gunicorn', pty=True)
+
+def riab():
+    sudo('apt-get -y update')
+    sudo('apt-get install -y zip unzip subversion git-core binutils build-essential python-dev python-setuptools python-imaging python-reportlab gdal-bin libproj-dev libgeos-dev python-urlgrabber gettext')
+    sudo('apt-get install -y python-numpy python-scipy python-gdal')
+    sudo('chown -R ubuntu:ubuntu /var/www/geonode/wsgi/geonode*')
+    run('echo "source /var/www/geonode/wsgi/geonode/bin/activate" >> ~/.bash_aliases')
+    sudo('rm -R *')
+    run('git clone https://github.com/AIFDR/riab_server.git')
+    run('git clone https://github.com/AIFDR/riab_client.git')
+    run('git clone https://github.com/AIFDR/riab_geonode.git')
+    run('source ~/.bash_aliases; python riab_server/setup.py develop')
+    run('source ~/.bash_aliases; python riab_geonode/setup.py develop')
+    sudo('touch /tmp/owslibwfs.log; chmod 777 /tmp/owslibwfs.log')
+
+    sudo('perl -pi -e 's/geonode.settings/riab.settings/g' /var/www/geonode/wsgi/geonode.wsgi')
+    run('cp /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/local_settings.py ~/riab_geonode/riab')
+    run('cd ~/riab_client;ant zip;cd /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/media/static/;rm -R *;unzip ~/geonode-client/build/geonode-client.zip') 
